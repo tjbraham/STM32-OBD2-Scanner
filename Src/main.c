@@ -6,9 +6,8 @@
  ******************************************************************************
  */
 
-
-#include "stm32f103xb.h" // Device header for stm32 bluepill
 #include <stdint.h>
+#include "stm32f103xb.h" // Device header for stm32 bluepill
 
 
 void SystemInit(void) {
@@ -92,6 +91,7 @@ void CAN_Init(void) {
 
 int main(void)
 {
+    CAN_Init();
     /* Loop forever */
 	for(;;);
 }
