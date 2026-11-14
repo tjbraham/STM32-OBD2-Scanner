@@ -70,8 +70,14 @@ link_directories(${CMAKE_PROJECT_NAME} ${link_DIRS})
 # Create an executable object type
 add_executable(${CMAKE_PROJECT_NAME})
 
+# Automatically grab every .c file inside the Src/ folder
+file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Src/*.c")
+
 # Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PUBLIC ${sources_SRCS})
+target_sources(${CMAKE_PROJECT_NAME} PUBLIC 
+    ${sources_SRCS}
+    ${APP_SOURCES}
+)
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE

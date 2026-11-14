@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include "stm32f103xb.h" // Device header for stm32 bluepill
+#include "can.h" // Include the CAN header file
 
 
 void SystemInit(void) {
@@ -37,61 +38,24 @@ void SystemInit(void) {
     while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL); // Wait until PLL is used as system clock
 }
 
-void CAN_Init(void) {
-    //Enable Clocks for CAN1 and GPIOA (CAN pins are on GPIOA)
-    RCC->APB1ENR |= RCC_APB1ENR_CAN1EN;  // Turn on CAN1 clock
-    RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;  // Turn on GPIOA clock
-    RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;  // Turn on Alternate Function clock
+CAN_Frame_t tx_frame = {
+    .id = 0x7DF, // Standard OBD2 broadcast ID
+    .dlc = 8, // Data length code (8 bytes)
+    .data = {0x02, 0x01, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00} // Example OBD2 request for engine RPM (PID 0x0C))
+};
 
-    // Configure CAN pins (PA11 and PA12)
-    // PA11 (CAN_RX) as input floating
-    // PA12 (CAN_TX) as alternate function push-pull, 50 MHz
-    GPIOA->CRH &= ~(GPIO_CRH_MODE11 | GPIO_CRH_CNF11 | GPIO_CRH_MODE12 | GPIO_CRH_CNF12);
-
-    // Set PA11 to Input Floating (CNF = 01, MODE = 00)
-    GPIOA->CRH |= (1 << 14); 
-    // Set PA12 to AF Push-Pull (CNF = 10, MODE = 11)
-    GPIOA->CRH |= (2 << 18) | (3 << 16);
-
-    //Enter CAN Initialization mode
-    CAN1->MCR &= ~CAN_MCR_SLEEP; // Exit sleep mode
-    CAN1->MCR |= CAN_MCR_INRQ; // Request initialization mode
-    while (!(CAN1->MSR & CAN_MSR_INAK)); // Wait until initialization mode is active
-
-    // Set CAN bit timing (500kbps which is OBD2 standard)
-    // 36MHz APB1 clock, to get 500kpbs, we need 72 time quanta total (36MHz / 500kHz = 72)
-    // set prescaler = 4, CAN clock is 36MHz / 4 = 9MHz, so we need 18 time quanta per bit (9MHz / 500kHz = 18)
-    // 18 Tq = 1 (Sync) + 14 (time segment 1) + 3 (time segment 2)
-    // Hardware registers store (value - 1), so:
-    uint32_t brp = 4 - 1;   // Baud Rate Prescaler
-    uint32_t ts1 = 14 - 1;  // Time Segment 1
-    uint32_t ts2 = 3 - 1;   // Time Segment 2
-
-    CAN1->BTR = (ts2 << 20) | (ts1 << 16) | (brp << 0); // Set the BTR register
-
-    // Config filter bank 0 to accept all messages (for testing)
-    CAN1->FMR |= CAN_FMR_FINIT; // Enter filter initialization mode
-
-    CAN1->FA1R &= ~(1 << 0); // Deactivate filter 0
-    CAN1->FS1R |= (1 << 0); // Set filter 0 to 32-bit scale
-    CAN1->FM1R &= ~(1 << 0); // Set filter 0 to identifier mask mode
-
-    // set ID and mask to 0 to accept all traffic
-    CAN1->sFilterRegister[0].FR1 = 0;   
-    CAN1->sFilterRegister[0].FR2 = 0;
-
-    CAN1->FA1R |= (1 << 0); // Reactivate Filter 0
-    CAN1->FMR &= ~CAN_FMR_FINIT; // Exit Filter Initialization mode
-
-    // enter normal mode
-    CAN1->MCR &= ~CAN_MCR_INRQ; // Exit initialization mode
-    while (CAN1->MSR & CAN_MSR_INAK); // Wait until normal mode is active
-
-}
+CAN_Frame_t rx_frame = {0}; // Initialize received frame to zero
 
 int main(void)
 {
     CAN_Init();
+
+    CAN_Transmit(&tx_frame);
+
     /* Loop forever */
-	for(;;);
+	for(;;){
+        if (CAN_Receive(&rx_frame)) {
+            // rx_frame now holds the looped-back 0x7DF message
+        }
+    }
 }
