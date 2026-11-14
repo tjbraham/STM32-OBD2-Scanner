@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include "stm32f103xb.h" // Device header for stm32 bluepill
 #include "can.h" // Include the CAN header file
+#include "systick.h" // Include the SysTick header file
 
 
 void SystemInit(void) {
@@ -48,6 +49,7 @@ CAN_Frame_t rx_frame = {0}; // Initialize received frame to zero
 
 int main(void)
 {
+    SysTick_Init();
     CAN_Init();
 
     CAN_Transmit(&tx_frame);
