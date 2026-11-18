@@ -10,6 +10,7 @@
 #include "stm32f103xb.h" // Device header for stm32 bluepill
 #include "can.h" // Include the CAN header file
 #include "systick.h" // Include the SysTick header file
+#include "uart.h" // Include the UART header file
 
 
 void SystemInit(void) {
@@ -51,6 +52,8 @@ int main(void)
 {
     SysTick_Init();
     CAN_Init();
+    UART2_Init();
+    
 
     CAN_Transmit(&tx_frame);
 

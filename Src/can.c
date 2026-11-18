@@ -31,7 +31,8 @@ void CAN_Init(void) {
     uint32_t ts1 = 14 - 1;  // Time Segment 1
     uint32_t ts2 = 3 - 1;   // Time Segment 2
 
-    CAN1->BTR = (ts2 << 20) | (ts1 << 16) | (brp << 0); // Set the BTR register
+    CAN1->BTR = CAN_BTR_LBKM | (ts2 << 20) | (ts1 << 16) | (brp << 0); // Set the BTR register
+    /***** "CAN_BTR_LBKM" enables loopback mode for testing. Remove it for normal operation. *****/
 
     // Config filter bank 0 to accept all messages (for testing)
     CAN1->FMR |= CAN_FMR_FINIT; // Enter filter initialization mode
