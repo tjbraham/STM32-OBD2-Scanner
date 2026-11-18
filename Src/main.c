@@ -11,6 +11,7 @@
 #include "can.h" // Include the CAN header file
 #include "systick.h" // Include the SysTick header file
 #include "uart.h" // Include the UART header file
+#include "i2c.h" // Include the I2C header file
 
 
 void SystemInit(void) {
@@ -53,6 +54,7 @@ int main(void)
     SysTick_Init();
     CAN_Init();
     UART2_Init();
+    I2C_Init();
     
 
     CAN_Transmit(&tx_frame);
