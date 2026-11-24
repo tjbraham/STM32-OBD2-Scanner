@@ -22,7 +22,7 @@ void I2C_Init(void) {
     I2C1->CR1 |= I2C_CR1_PE; // enable I2C1 peripheral
 }
 
-void I2C1_Write(uint8_t device_addr, uint8_t reg_addr, uint8_t data) {
+void I2C_Write(uint8_t device_addr, uint8_t reg_addr, uint8_t data) {
     // Wait until I2C bus is free
     while (I2C1->SR2 & I2C_SR2_BUSY);
 
@@ -53,7 +53,7 @@ void I2C1_Write(uint8_t device_addr, uint8_t reg_addr, uint8_t data) {
     I2C1->CR1 |= I2C_CR1_STOP;
 }
 
-void I2C1_WriteBuffer(uint8_t device_addr, uint8_t reg_addr, uint8_t *data, uint16_t size) {
+void I2C_WriteBuffer(uint8_t device_addr, uint8_t reg_addr, uint8_t *data, uint16_t size) {
     while (I2C1->SR2 & I2C_SR2_BUSY); // Wait until I2C bus is free
 
     I2C1->CR1 |= I2C_CR1_START;
