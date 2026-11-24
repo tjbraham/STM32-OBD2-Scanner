@@ -63,6 +63,43 @@ static void Render_StatusScreen(const char *header, const char *line1, const cha
     SSD1306_UpdateScreen();
 }
 
+/*
+ **************************
+ * TESTING
+ **************************
+ */
+#define BENCH_LOOPBACK_TEST 1
+
+#if BENCH_LOOPBACK_TEST
+static void Bench_InjectMockResponse(ScannerMode_t mode) {
+    static uint16_t fake_rpm = 800U;
+    CAN_Frame_t mock = { .id = 0x7E8U, .dlc = 8U, .data = {0} };
+
+    if (mode == SCANNER_MODE_RPM) {
+        fake_rpm = (fake_rpm >= 6000U) ? 800U : (uint16_t)(fake_rpm + 250U);
+        uint16_t raw = (uint16_t)(fake_rpm * 4U);
+        mock.data[0] = 0x04U; mock.data[1] = 0x41U; mock.data[2] = OBD2_PID_ENGINE_RPM;
+        mock.data[3] = (uint8_t)(raw >> 8);
+        mock.data[4] = (uint8_t)(raw & 0xFFU);
+        CAN_Transmit(&mock);
+    } else if (mode == SCANNER_MODE_SPEED) {
+        mock.data[0] = 0x03U; mock.data[1] = 0x41U; mock.data[2] = OBD2_PID_VEHICLE_SPEED;
+        mock.data[3] = 88U; // 88 km/h
+        CAN_Transmit(&mock);
+    } else if (mode == SCANNER_MODE_COOLANT) {
+        mock.data[0] = 0x03U; mock.data[1] = 0x41U; mock.data[2] = OBD2_PID_COOLANT_TEMP;
+        mock.data[3] = 130U; // 130 - 40 = 90 C
+        CAN_Transmit(&mock);
+    } else if (mode == SCANNER_MODE_READ_DTC) {
+        // 2 fake codes: P0171 (0x01, 0x71) and P0300 (0x03, 0x00)
+        mock.data[0] = 0x06U; mock.data[1] = 0x43U; mock.data[2] = 0x02U;
+        mock.data[3] = 0x01U; mock.data[4] = 0x71U;
+        mock.data[5] = 0x03U; mock.data[6] = 0x00U;
+        CAN_Transmit(&mock);
+    }
+}
+#endif
+
 
 int main(void)
 {
@@ -109,21 +146,33 @@ int main(void)
                 case SCANNER_MODE_RPM:
                     Render_StatusScreen("MODE: ENGINE RPM", "RPM: ---", NULL);
                     OBD2_RequestPID(OBD2_PID_ENGINE_RPM);
+                    #if BENCH_LOOPBACK_TEST
+                        Bench_InjectMockResponse(mode);
+                    #endif
                     break;
 
                 case SCANNER_MODE_SPEED:
                     Render_StatusScreen("MODE: VEH SPEED", "SPD: --- KM/H", NULL);
                     OBD2_RequestPID(OBD2_PID_VEHICLE_SPEED);
+                    #if BENCH_LOOPBACK_TEST
+                        Bench_InjectMockResponse(mode);
+                    #endif
                     break;
 
                 case SCANNER_MODE_COOLANT:
                     Render_StatusScreen("MODE: COOLANT", "TEMP: --- C", NULL);
                     OBD2_RequestPID(OBD2_PID_COOLANT_TEMP);
+                    #if BENCH_LOOPBACK_TEST
+                        Bench_InjectMockResponse(mode);
+                    #endif
                     break;
 
                 case SCANNER_MODE_READ_DTC:
                     Render_StatusScreen("MODE: READ DTCS", "SCANNING ECU...", NULL);
                     OBD2_RequestDTCs();
+                    #if BENCH_LOOPBACK_TEST
+                        Bench_InjectMockResponse(mode);
+                    #endif
                     break;
 
                 case SCANNER_MODE_CLEAR_DTC:
@@ -142,6 +191,9 @@ int main(void)
             if (mode == SCANNER_MODE_READ_DTC && (bt_cmd == 'r' || bt_cmd == 'R')) {
                 Render_StatusScreen("MODE: READ DTCS", "SCANNING ECU...", NULL);
                 OBD2_RequestDTCs();
+                #if BENCH_LOOPBACK_TEST
+                    Bench_InjectMockResponse(mode);
+                #endif
             } else if (mode == SCANNER_MODE_CLEAR_DTC && (bt_cmd == 'c' || bt_cmd == 'C')) {
                 OBD2_ClearDTCs();
                 Render_StatusScreen("MODE: CLEAR DTCS", "CLEAR SENT", "CHECK ENGINE OFF");
@@ -153,12 +205,21 @@ int main(void)
         if (mode == SCANNER_MODE_RPM && (now - last_poll_ms) >= 200U) {
             last_poll_ms = now;
             OBD2_RequestPID(OBD2_PID_ENGINE_RPM);
+            #if BENCH_LOOPBACK_TEST
+                Bench_InjectMockResponse(mode);
+            #endif
         } else if (mode == SCANNER_MODE_SPEED && (now - last_poll_ms) >= 200U) {
             last_poll_ms = now;
             OBD2_RequestPID(OBD2_PID_VEHICLE_SPEED);
+            #if BENCH_LOOPBACK_TEST
+                Bench_InjectMockResponse(mode);
+            #endif
         } else if (mode == SCANNER_MODE_COOLANT && (now - last_poll_ms) >= 500U) {
             last_poll_ms = now;
             OBD2_RequestPID(OBD2_PID_COOLANT_TEMP);
+            #if BENCH_LOOPBACK_TEST
+                Bench_InjectMockResponse(mode);
+            #endif
         }
 
         // 5. Process any incoming CAN frame immediately
