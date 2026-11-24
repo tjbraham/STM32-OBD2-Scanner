@@ -13,6 +13,7 @@
 #include "uart.h" // Include the UART header file
 #include "i2c.h" // Include the I2C header file
 #include "button.h" // Include the Button header file
+#include "obd2.h" // Include the OBD2 header file
 
 
 void SystemInit(void) {
@@ -57,6 +58,7 @@ int main(void)
     UART2_Init();
     I2C_Init();
     Button_Init();
+    
     
 
     CAN_Transmit(&tx_frame);
